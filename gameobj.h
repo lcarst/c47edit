@@ -3,6 +3,8 @@
 // Licensed under the GPL3+.
 // See LICENSE file for more details.
 
+#pragma once
+
 struct GameObject;
 
 class goref
@@ -94,7 +96,9 @@ struct GameObject
 inline void goref::deref() { if (obj) { obj->refcount--; obj = 0; } }
 inline void goref::set(GameObject * n) { deref(); obj = n; if (obj) obj->refcount++; }
 
-extern Chunk *spkchk, *prot, *pclp, *phea, *pnam, *ppos, *pmtx, *pver, *pfac, *pftx, *puvc;
+
+extern Chunk *spkchk;
+extern Chunk *prot, *pclp, *phea, *pnam, *ppos, *pmtx, *pver, *pfac, *pftx, *puvc;
 extern GameObject *rootobj, *cliprootobj, *superroot;
 extern char *lastspkfn;
 extern void *zipmem;
@@ -107,3 +111,5 @@ void SaveSceneSPK(char *fn);
 void RemoveObject(GameObject *o);
 GameObject* DuplicateObject(GameObject *o, GameObject *parent = rootobj);
 void GiveObject(GameObject *o, GameObject *t);
+
+

@@ -3,6 +3,8 @@
 // Licensed under the GPL3+.
 // See LICENSE file for more details.
 
+#pragma once
+
 #define WIN32_LEAN_AND_MEAN
 #define _USE_MATH_DEFINES
 
@@ -23,13 +25,14 @@ typedef unsigned int uint;
 void ferr(char *str);
 void warn(char *str);
 
+// Unknown types that are guessed are marked with _temp
 
-const uint ZSTDOBJ = 2;
+#define ZSTDOBJ 2
 
-// Unknown real name, use a temporary guess
-const uint ZGATE_temp = 21;
-const uint ZBOUNDS_temp = 28;
+#define ZGATE_temp 21
+#define ZBOUNDS_temp 28
 
+#define ZROOM 33
 
 
 #include "vecmat.h"

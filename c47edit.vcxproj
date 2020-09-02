@@ -113,7 +113,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="c47map.cpp" />
     <ClCompile Include="chunk.cpp" />
+    <ClCompile Include="edit.cpp" />
     <ClCompile Include="gameobj.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />
@@ -127,9 +129,11 @@
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="c47map.h" />
     <ClInclude Include="chunk.h" />
     <ClInclude Include="gameobj.h" />
     <ClInclude Include="global.h" />
+    <ClInclude Include="edit.h" />
     <ClInclude Include="imgui\imgui.h" />
     <ClInclude Include="imgui\imgui_impl_opengl2.h" />
     <ClInclude Include="imgui\imgui_impl_win32.h" />

@@ -4,6 +4,7 @@
 // See LICENSE file for more details.
 
 #include "global.h"
+#include "c47map.h"
 #include "miniz.h"
 #include <functional>
 #include <sstream>
@@ -106,9 +107,9 @@ void LoadSceneSPK(char *fn)
 	if (!(prot && pclp && phea && pnam && ppos && pmtx && pver && pfac && pftx && puvc && pdbl))
 		ferr("One or more important chunks were not found in Pack.SPK .");
 
-	rootobj = new GameObject("Root", 0x21 /*ZROOM*/);
-	cliprootobj = new GameObject("ClipRoot", 0x21 /*ZROOM*/);
-	superroot = new GameObject("SuperRoot", 0x21);
+	rootobj = new GameObject("Root", ZROOM /*ZROOM*/);
+	cliprootobj = new GameObject("ClipRoot", ZROOM /*ZROOM*/);
+	superroot = new GameObject("SuperRoot", ZROOM);
 	superroot->subobj.push_back(rootobj);
 	superroot->subobj.push_back(cliprootobj);
 	rootobj->parent = cliprootobj->parent = superroot;

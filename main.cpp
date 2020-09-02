@@ -6,6 +6,8 @@
 #include "global.h"
 #include "video.h"
 #include "texture.h"
+#include "edit.h"
+#include "c47map.h"
 #include <Windows.h>
 #include <gl/GL.h>
 #include <gl/GLU.h>
@@ -24,18 +26,15 @@ float camspeed = 32;
 bool wireframe = false;
 bool findsel = false;
 
-bool cull_backfaces = true;
+bool cullBackfaces = true;
 bool outline = true;
 
-bool draw_solid = true;
-bool draw_nonsolid = true;
+bool drawSolid = true;
+bool drawNonSolid = true;
 
-bool draw_bounds = false;
-bool draw_gates = false;
-bool draw_other = false;
-
-
-
+bool drawBounds = false;
+bool drawGates = false;
+bool drawOther = false;
 
 uint32_t framesincursec = 0, framespersec = 0, lastfpscheck;
 Vector3 cursorpos(0, 0, 0);
@@ -397,16 +396,16 @@ void IGMain()
 	ImGui::SameLine();
 	ImGui::Checkbox("Textured", &rendertextures);
 
-	ImGui::Checkbox("Cull backfaces", &cull_backfaces);
+	ImGui::Checkbox("Cull backfaces", &cullBackfaces);
 	ImGui::SameLine();
 	ImGui::Checkbox("Draw outlines", &outline);
 	ImGui::Separator();
-	ImGui::Checkbox("Draw solid", &draw_solid);
+	ImGui::Checkbox("Draw solid", &drawSolid);
 	ImGui::SameLine();
-	ImGui::Checkbox("Draw non-solid", &draw_nonsolid);
-	ImGui::Checkbox("Draw bounds (28)", &draw_bounds);
-	ImGui::Checkbox("Draw gates (21)", &draw_gates);
-	ImGui::Checkbox("Draw other", &draw_other);
+	ImGui::Checkbox("Draw non-solid", &drawNonSolid);
+	ImGui::Checkbox("Draw bounds (28)", &drawBounds);
+	ImGui::Checkbox("Draw gates (21)", &drawGates);
+	ImGui::Checkbox("Draw other", &drawOther);
 
 	ImGui::Text("FPS: %u", framespersec);
 	ImGui::End();
@@ -453,7 +452,7 @@ GameObject* FindObjectNamed(char *name, GameObject *sup = rootobj)
 	return 0;
 }
 
-static bool should_ignore(GameObject *o)
+static bool shouldIgnore(GameObject *o)
 {
 	if ( o == NULL )
 		return true;
@@ -461,17 +460,17 @@ static bool should_ignore(GameObject *o)
 	if ( o->type == ZSTDOBJ )
 	{
 		bool solid = (bool)o->dbl[4].u32;
-		if ( solid && !draw_solid )
+		if ( solid && !drawSolid )
 			return true;
-		if ( !solid && !draw_nonsolid )
+		if ( !solid && !drawNonSolid )
 			return true;
 		return false;
 	}
-	if ( o->type == ZBOUNDS_temp && !draw_bounds )
+	if ( o->type == ZBOUNDS_temp && !drawBounds )
 		return true;
-	if ( o->type == ZGATE_temp && !draw_gates )
+	if ( o->type == ZGATE_temp && !drawGates )
 		return true;
-	if ( !draw_other && (o->type != ZSTDOBJ && o->type != ZBOUNDS_temp && o->type != ZGATE_temp) )
+	if ( !drawOther && (o->type != ZSTDOBJ && o->type != ZBOUNDS_temp && o->type != ZGATE_temp) )
 		return true;
 
 
@@ -486,7 +485,7 @@ void RenderObject(GameObject *o, bool shade)
 	glTranslatef(o->position.x, o->position.y, o->position.z);
 	glMultMatrixf(o->matrix.v);
 
-	bool ignore = should_ignore(o);
+	bool ignore = shouldIgnore(o);
 
 	//if (o->mesh && (o->flags & 0x20)) {
 	//if ( o->mesh && (o->flags & 0x20) && !ignore )
@@ -544,7 +543,7 @@ bool IsRayIntersectingFace(Vector3 *raystart, Vector3 *raydir, int startvertex, 
 	float planenorm_dot_raydir = planenorm.dot(*raydir);
 
 	// Only select by front faces if backfaces are culled
-	if ( planenorm_dot_raydir >= 0 && cull_backfaces ) goto irifend;
+	if ( planenorm_dot_raydir >= 0 && cullBackfaces ) goto irifend;
 
 	float param = -(planenorm.dot(*raystart) + planeord) / planenorm_dot_raydir;
 	if ( param < 0 ) goto irifend;
@@ -591,7 +590,7 @@ GameObject *IsRayIntersectingObject(Vector3 *raystart, Vector3 *raydir, GameObje
 	objmtx._43 = o->position.z;
 	objmtx *= *worldmtx;
 
-	bool ignore = should_ignore(o);
+	bool ignore = shouldIgnore(o);
 	if ( o->mesh && !ignore )
 	{
 		Mesh *m = o->mesh;
@@ -620,7 +619,8 @@ GameObject *IsRayIntersectingObject(Vector3 *raystart, Vector3 *raydir, GameObje
 //int main(int argc, char* argv[])
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode)
 {
-	//SetProcessDPIAware();
+	InitMap();
+	InitEditor();
 
 	OPENFILENAME ofn; char zipfilename[1024]; zipfilename[0] = 0;
 	memset(&ofn, 0, sizeof(OPENFILENAME));
@@ -779,7 +779,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 			float ovs = pow(2, objviewscale);
 			glScalef(ovs, ovs, ovs);
 
-			if ( cull_backfaces )
+			if ( cullBackfaces )
 			{
 				glEnable(GL_CULL_FACE);
 				glCullFace(GL_BACK);

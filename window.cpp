@@ -11,7 +11,7 @@
 
 char *apptitle = "c47edit", *appclassname = "AG_c47editWinClass";
 HWND hWindow;
-uint screen_width = 1280, screen_height = 660;
+uint screen_width = 1600, screen_height = 1000;
 bool win_minimized = false;
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
