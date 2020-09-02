@@ -97,8 +97,7 @@ inline void goref::deref() { if (obj) { obj->refcount--; obj = 0; } }
 inline void goref::set(GameObject * n) { deref(); obj = n; if (obj) obj->refcount++; }
 
 
-extern Chunk *spkchk;
-extern Chunk *prot, *pclp, *phea, *pnam, *ppos, *pmtx, *pver, *pfac, *pftx, *puvc;
+//extern Chunk *Map->pver, *Map->pfac, *Map->pftx, *Map->puvc;
 extern GameObject *rootobj, *cliprootobj, *superroot;
 extern char *lastspkfn;
 extern void *zipmem;

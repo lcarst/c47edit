@@ -6,7 +6,7 @@ struct GameObject;
 struct Map_t
 {
 	Chunk *spkchk, *prot, *pclp;
-	Chunk *phea, *pnam, *ppos, *pmtx, *pver, *pfac, *pftx, *puvc;
+	Chunk *phea, *pnam, *ppos, *pmtx, *pver, *pfac, *pftx, *puvc, *pdbl;
 	GameObject *rootobj, *cliprootobj, *superroot;
 };
 

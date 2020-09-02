@@ -5,6 +5,7 @@
 
 #include "global.h"
 #include "texture.h"
+#include "c47map.h"
 #include <Windows.h>
 #include <gl/GL.h>
 
@@ -64,23 +65,23 @@ void Mesh::draw()
 {
 	if (!rendertextures)
 	{
-		glVertexPointer(3, GL_FLOAT, 6, (float*)pver->maindata + this->vertstart);
-		glDrawElements(GL_QUADS, this->numquads * 4, GL_UNSIGNED_SHORT, (uint16_t*)pfac->maindata + this->quadstart);
-		glDrawElements(GL_TRIANGLES, this->numtris * 3, GL_UNSIGNED_SHORT, (uint16_t*)pfac->maindata + this->tristart);
+		glVertexPointer(3, GL_FLOAT, 6, (float*)Map->pver->maindata + this->vertstart);
+		glDrawElements(GL_QUADS, this->numquads * 4, GL_UNSIGNED_SHORT, (uint16_t*)Map->pfac->maindata + this->quadstart);
+		glDrawElements(GL_TRIANGLES, this->numtris * 3, GL_UNSIGNED_SHORT, (uint16_t*)Map->pfac->maindata + this->tristart);
 	}
 	else
 	{
-		uint16_t *f = (uint16_t*)pfac->maindata;
-		float *v = (float*)pver->maindata + this->vertstart;
+		uint16_t *f = (uint16_t*)Map->pfac->maindata;
+		float *v = (float*)Map->pver->maindata + this->vertstart;
 		static const float defu[8] = { 0,0, 0,1, 1,1, 1,0 };
 		static const uint32_t c[4] = { 0xFF0000FF, 0xFF00FF00, 0xFFFF0000, 0xFF0000FF };
-		uint8_t *ftxpnt = (uint8_t*)pftx->maindata + this->ftxo - 1;
+		uint8_t *ftxpnt = (uint8_t*)Map->pftx->maindata + this->ftxo - 1;
 		uint16_t *x = (uint16_t*)(ftxpnt + 12);
 		static const int uvit[4] = { 0,1,2,3 };
 
 		float *u = (float*)defu;
 		if (this->ftxo && !(this->ftxo & 0x80000000))
-			u = (float*)puvc->maindata + *(uint32_t*)(ftxpnt);
+			u = (float*)Map->puvc->maindata + *(uint32_t*)(ftxpnt);
 
 		for (int i = 0; i < this->numtris; i++)
 		{

@@ -56,8 +56,7 @@ char *objtypenames[] = {
 	"?", "?", "?", "?",
 };
 
-Chunk *spkchk;
-Chunk *prot, *pclp, *phea, *pnam, *ppos, *pmtx, *pver, *pfac, *pftx, *puvc, *pdbl;
+//Chunk *Map->pver, *Map->pfac, *Map->pftx, *Map->puvc, *Map->pdbl;
 GameObject *rootobj, *cliprootobj, *superroot;
 char *lastspkfn = 0;
 void *zipmem = 0; uint zipsize = 0;
@@ -82,29 +81,29 @@ void LoadSceneSPK(char *fn)
 	fclose(zipfile);
 
 	mz_zip_archive zip; void *spkmem; size_t spksize;
-	spkchk = new Chunk;
+	Map->spkchk = new Chunk;
 	mz_zip_zero_struct(&zip);
 	mz_bool mzreadok = mz_zip_reader_init_mem(&zip, zipmem, zipsize, 0);
 	if (!mzreadok) ferr("Failed to initialize ZIP reading.");
 	spkmem = mz_zip_reader_extract_file_to_heap(&zip, "Pack.SPK", &spksize, 0);
 	if (!spkmem) ferr("Failed to extract Pack.SPK from ZIP archive.");
 	mz_zip_reader_end(&zip);
-	LoadChunk(spkchk, spkmem);
+	LoadChunk(Map->spkchk, spkmem);
 	free(spkmem);
 	lastspkfn = strdup(fn);
 
-	prot = spkchk->findSubchunk('TORP');
-	pclp = spkchk->findSubchunk('PLCP');
-	phea = spkchk->findSubchunk('AEHP');
-	pnam = spkchk->findSubchunk('MANP');
-	ppos = spkchk->findSubchunk('SOPP');
-	pmtx = spkchk->findSubchunk('XTMP');
-	pver = spkchk->findSubchunk('REVP');
-	pfac = spkchk->findSubchunk('CAFP');
-	pftx = spkchk->findSubchunk('XTFP');
-	puvc = spkchk->findSubchunk('CVUP');
-	pdbl = spkchk->findSubchunk('LBDP');
-	if (!(prot && pclp && phea && pnam && ppos && pmtx && pver && pfac && pftx && puvc && pdbl))
+	Map->prot = Map->spkchk->findSubchunk('TORP');
+	Map->pclp = Map->spkchk->findSubchunk('PLCP');
+	Map->phea = Map->spkchk->findSubchunk('AEHP');
+	Map->pnam = Map->spkchk->findSubchunk('MANP');
+	Map->ppos = Map->spkchk->findSubchunk('SOPP');
+	Map->pmtx = Map->spkchk->findSubchunk('XTMP');
+	Map->pver = Map->spkchk->findSubchunk('REVP');
+	Map->pfac = Map->spkchk->findSubchunk('CAFP');
+	Map->pftx = Map->spkchk->findSubchunk('XTFP');
+	Map->puvc = Map->spkchk->findSubchunk('CVUP');
+	Map->pdbl = Map->spkchk->findSubchunk('LBDP');
+	if (!(Map->prot && Map->pclp && Map->phea && Map->pnam && Map->ppos && Map->pmtx && Map->pver && Map->pfac && Map->pftx && Map->puvc && Map->pdbl))
 		ferr("One or more important chunks were not found in Pack.SPK .");
 
 	rootobj = new GameObject("Root", ZROOM /*ZROOM*/);
@@ -123,9 +122,9 @@ void LoadSceneSPK(char *fn)
 	uint objid = 1;
 	z = [&z, &objid, &chkobjmap, &idobjmap](Chunk *c, GameObject *parentobj) {
 		uint pheaoff = c->tag & 0xFFFFFF;
-		uint *p = (uint*)((char*)phea->maindata + pheaoff);
+		uint *p = (uint*)((char*)Map->phea->maindata + pheaoff);
 		uint ot = *(unsigned short*)(&p[5]);
-		char *objname = (char*)pnam->maindata + p[2];
+		char *objname = (char*)Map->pnam->maindata + p[2];
 
 		GameObject *o = new GameObject(objname, ot);
 		chkobjmap[c] = o;
@@ -142,17 +141,17 @@ void LoadSceneSPK(char *fn)
 			z(&c->subchunks[i], o);
 	};
 
-	y(pclp, cliprootobj);
-	y(prot, rootobj);
+	y(Map->pclp, cliprootobj);
+	y(Map->prot, rootobj);
 
 	// Then read/load the object properties.
 	std::function<void(Chunk*, GameObject*)> g;
 	g = [&g,&objid,&chkobjmap,&idobjmap](Chunk *c, GameObject *parentobj) {
 		uint pheaoff = c->tag & 0xFFFFFF;
-		uint *p = (uint*)((char*)phea->maindata + pheaoff);
+		uint *p = (uint*)((char*)Map->phea->maindata + pheaoff);
 		uint ot = *(unsigned short*)(&p[5]);
 		char *otname = GetObjTypeString(ot);
-		char *objname = (char*)pnam->maindata + p[2];
+		char *objname = (char*)Map->pnam->maindata + p[2];
 
 		GameObject *o = chkobjmap[c];
 		o->state = (c->tag >> 24) & 255;
@@ -162,10 +161,10 @@ void LoadSceneSPK(char *fn)
 		o->color = p[13];
 		o->root = o->parent->root;
 
-		o->position = *(Vector3*)((char*)ppos->maindata + p[4]);
+		o->position = *(Vector3*)((char*)Map->ppos->maindata + p[4]);
 		CreateIdentityMatrix(&o->matrix);
 		float mc[4];
-		int32_t *mtxoff  = (int32_t*)pmtx->maindata + p[3] * 4;
+		int32_t *mtxoff  = (int32_t*)Map->pmtx->maindata + p[3] * 4;
 		for (int i = 0; i < 4; i++)
 			mc[i] = (float)mtxoff[i] / 1073741824.0f; // divide by 2^30
 		Vector3 rv[3];
@@ -194,7 +193,7 @@ void LoadSceneSPK(char *fn)
 				l->param[i] = p[6 + i];
 		}
 
-		char *dpbeg = (char*)pdbl->maindata + p[0];
+		char *dpbeg = (char*)Map->pdbl->maindata + p[0];
 		uint32_t ds = *(uint32_t*)dpbeg & 0xFFFFFF;
 		o->dblflags = (*(uint32_t*)dpbeg >> 24) & 255;
 		char *dp = dpbeg + 4;
@@ -256,8 +255,8 @@ void LoadSceneSPK(char *fn)
 			g(&c->subchunks[i], o);
 	};
 
-	f(pclp, cliprootobj);
-	f(prot, rootobj);
+	f(Map->pclp, cliprootobj);
+	f(Map->prot, rootobj);
 }
 
 struct DBLHash
@@ -463,8 +462,8 @@ void ModifySPK()
 	f(nrot, rootobj);
 	f(nclp, cliprootobj);
 
-	*prot = *nrot;
-	*pclp = *nclp;
+	*Map->prot = *nrot;
+	*Map->pclp = *nclp;
 
 	auto g = [](Chunk *nthg, std::stringbuf &buf) {
 		std::string st = buf.str();
@@ -498,13 +497,13 @@ void ModifySPK()
 	memcpy(ndbl->maindata, dblstr.data(), dblstr.size());
 	ndbl->maindata_size = dblstr.size();
 
-	*phea = *nhea;
-	*pnam = *nnam;
-	*ppos = *npos;
-	*pmtx = *nmtx;
-	*pdbl = *ndbl;
+	*Map->phea = *nhea;
+	*Map->pnam = *nnam;
+	*Map->ppos = *npos;
+	*Map->pmtx = *nmtx;
+	*Map->pdbl = *ndbl;
 
-	((uint32_t*)spkchk->maindata)[1] = 0x40000;
+	((uint32_t*)Map->spkchk->maindata)[1] = 0x40000;
 
 	objidmap.clear();
 }
@@ -530,7 +529,7 @@ void SaveSceneSPK(char *fn)
 
 	ModifySPK();
 	void *spkmem; size_t spksize;
-	SaveChunkToMem(spkchk, &spkmem, &spksize);
+	SaveChunkToMem(Map->spkchk, &spkmem, &spksize);
 
 	mz_zip_writer_add_mem(&outzip, "Pack.SPK", spkmem, spksize, MZ_DEFAULT_COMPRESSION);
 	mz_zip_writer_finalize_archive(&outzip);

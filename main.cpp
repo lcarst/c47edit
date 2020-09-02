@@ -523,8 +523,8 @@ Vector3 finalintersectpnt = Vector3(0, 0, 0);
 
 bool IsRayIntersectingFace(Vector3 *raystart, Vector3 *raydir, int startvertex, int startface, int numverts, Matrix *worldmtx)
 {
-	uint16_t *bfac = (uint16_t*)pfac->maindata + startface;
-	float *bver = (float*)pver->maindata + startvertex;
+	uint16_t *bfac = (uint16_t*)Map->pfac->maindata + startface;
+	float *bver = (float*)Map->pver->maindata + startvertex;
 
 	Vector3 *pnts = new Vector3[numverts];
 	for ( int i = 0; i < 3; i++ )
