@@ -23,6 +23,15 @@ typedef unsigned int uint;
 void ferr(char *str);
 void warn(char *str);
 
+
+const uint ZSTDOBJ = 2;
+
+// Unknown real name, use a temporary guess
+const uint ZGATE_temp = 21;
+const uint ZBOUNDS_temp = 28;
+
+
+
 #include "vecmat.h"
 #include "chunk.h"
 #include "gameobj.h"

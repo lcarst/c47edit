@@ -25,7 +25,7 @@ char *objtypenames[] = {
 	"?", "?", "?", "?",
 
 	// 0x20
-	"?", "ZROOM", "?", "ZSPOTLIGHT", 
+	"?", "ZROOM", "?", "ZSPOTLIGHT",
 	"?", "?", "?", "ZIKLNKOBJ",
 	"?", "?", "?", "ZEDITORGROUP",
 	"ZWINOBJ", "ZCHAROBJ", "ZWINGROUP", "ZFONT",
@@ -237,7 +237,8 @@ void LoadSceneSPK(char *fn)
 			case 0x3F:
 				break;
 			default:
-				ferr("Unknown DBL entry type!");
+				e.str = "ERROR";
+				//ferr("Unknown DBL entry type!");
 			}
 			o->dbl.push_back(e);
 		}
@@ -377,7 +378,7 @@ void MakeObjChunk(Chunk *c, GameObject *o, bool isclp)
 
 	uint heaoff = sbtell(&heabuf);
 	uint namoff = sbtell(&nambuf);
-		
+
 	nambuf.sputn(o->name, strlen(o->name) + 1);
 	if(true)
 	{
@@ -577,7 +578,7 @@ GameObject* DuplicateObject(GameObject *o, GameObject *parent)
 	GameObject *d = new GameObject;
 	*d = *o;
 	d->name = strdup(o->name);
-	
+
 	d->dbl.clear();
 	for (auto e = o->dbl.begin(); e != o->dbl.end(); e++)
 	{
