@@ -1,7 +1,9 @@
 #include "global.h"
 #include "utils.h"
+#include "edit.h"
 #include <Windows.h>
 #include <commdlg.h>
+#include "c47map.h"
 #include "window.h"
 
 void ferr(char *str)
@@ -15,3 +17,4 @@ void warn(char *str)
 {
 	MessageBox(GetWindow(), str, "Warning", 48);
 }
+

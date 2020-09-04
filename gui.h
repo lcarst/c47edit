@@ -3,3 +3,5 @@
 void GuiSetup();
 void GuiBegin();
 void GuiEnd();
+void GuiRender();
+void HandleInput();

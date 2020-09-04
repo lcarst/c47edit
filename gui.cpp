@@ -12,17 +12,6 @@ bool findsel = false;
 
 #define swap_rb(a) ( (a & 0xFF00FF00) | ((a & 0xFF0000) >> 16) | ((a & 255) << 16) )
 
-bool ObjInObj(GameObject *a, GameObject *b)
-{
-	GameObject *o = a;
-	while ( o = o->parent )
-	{
-		if ( o == b )
-			return true;
-	}
-	return false;
-}
-
 
 
 void IGOTNode(GameObject *o)
@@ -170,7 +159,6 @@ void IGObjectInfo()
 		}*/
 		Vector3 rota = GetYXZRotVecFromMatrix(&Editor->selobj->matrix);
 		rota *= 180.0f / M_PI;
-
 
 		if ( ImGui::DragFloat3("Orientation", &rota.x) )
 		{
@@ -340,7 +328,6 @@ void IGMain()
 	ImGui::Checkbox("Draw other", &Editor->drawOther);
 
 	ImGui::Text("FPS: %u", Editor->framespersec);
-	ImGui::End();
 }
 
 uint curtexid = 0;
@@ -365,7 +352,6 @@ void IGTest()
 		ImGui::Image(t->second, ImVec2(256, 256));
 	else
 		ImGui::Text("Texture %u not found.", curtexid);
-	ImGui::End();
 }
 
 void GuiSetup()
@@ -383,6 +369,7 @@ void GuiBegin()
 	IGMain();
 	IGObjectTree();
 	IGObjectInfo();
+	ImGui::End();
 #if 0
 	IGTest();
 #endif
@@ -391,4 +378,199 @@ void GuiBegin()
 void GuiEnd()
 {
 	ImGui::EndFrame();
+}
+
+void GuiRender()
+{
+	ImGui::Render();
+	ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+}
+
+static GameObject *bestpickobj = 0;
+static float bestpickdist;
+static Vector3 bestpickintersectionpnt(0, 0, 0);
+static Vector3 finalintersectpnt = Vector3(0, 0, 0);
+
+bool IsRayIntersectingFace(Vector3 *raystart, Vector3 *raydir, int startvertex, int startface, int numverts, Matrix *worldmtx)
+{
+	uint16_t *bfac = (uint16_t*)Map->pfac->maindata + startface;
+	float *bver = (float*)Map->pver->maindata + startvertex;
+
+	Vector3 *pnts = new Vector3[numverts];
+	for ( int i = 0; i < 3; i++ )
+	{
+		Vector3 v(bver[bfac[i] * 3 / 2], bver[bfac[i] * 3 / 2 + 1], bver[bfac[i] * 3 / 2 + 2]);
+		TransformVector3(&pnts[i], &v, worldmtx);
+	}
+
+	Vector3 *edges = new Vector3[numverts];
+	for ( int i = 0; i < 2; i++ )
+		edges[i] = pnts[i + 1] - pnts[i];
+
+	Vector3 planenorm = edges[1].cross(edges[0]);
+	float planeord = -planenorm.dot(pnts[0]);
+
+	float planenorm_dot_raydir = planenorm.dot(*raydir);
+
+	// Only select by front faces if backfaces are culled
+	if ( planenorm_dot_raydir >= 0 && Editor->cullBackfaces ) goto irifend;
+
+	float param = -(planenorm.dot(*raystart) + planeord) / planenorm_dot_raydir;
+	if ( param < 0 ) goto irifend;
+
+	Vector3 interpnt = *raystart + *raydir * param;
+
+	for ( int i = 3; i < numverts; i++ )
+	{
+		Vector3 v(bver[bfac[i] * 3 / 2], bver[bfac[i] * 3 / 2 + 1], bver[bfac[i] * 3 / 2 + 2]);
+		TransformVector3(&pnts[i], &v, worldmtx);
+	}
+
+	for ( int i = 2; i < numverts - 1; i++ )
+		edges[i] = pnts[i + 1] - pnts[i];
+	edges[numverts - 1] = pnts[0] - pnts[numverts - 1];
+
+	// Check if plane/ray intersection point is inside face
+
+	for ( int i = 0; i < numverts; i++ )
+	{
+		Vector3 edgenorm = -planenorm.cross(edges[i]);
+		Vector3 ptoi = interpnt - pnts[i];
+		if ( edgenorm.dot(ptoi) < 0 )
+			goto irifend;
+	}
+
+	finalintersectpnt = interpnt;
+	delete[] pnts;
+	delete[] edges;
+	return true;
+
+irifend:
+	delete[] pnts;
+	delete[] edges;
+	return false;
+}
+
+
+GameObject *IsRayIntersectingObject(Vector3 *raystart, Vector3 *raydir, GameObject *o, Matrix *worldmtx)
+{
+	float d;
+	Matrix objmtx = o->matrix;
+	objmtx._41 = o->position.x;
+	objmtx._42 = o->position.y;
+	objmtx._43 = o->position.z;
+	objmtx *= *worldmtx;
+
+	bool ignore = ShouldIgnore(o);
+	if ( o->mesh && !ignore )
+	{
+		Mesh *m = o->mesh;
+		for ( int i = 0; i < m->numquads; i++ )
+			if ( IsRayIntersectingFace(raystart, raydir, m->vertstart, m->quadstart + i * 4, 4, &objmtx) )
+				if ( (d = (finalintersectpnt - Editor->campos).sqlen2xz()) < bestpickdist )
+				{
+					bestpickdist = d;
+					bestpickobj = o;
+					bestpickintersectionpnt = finalintersectpnt;
+				}
+		for ( int i = 0; i < m->numtris; i++ )
+			if ( IsRayIntersectingFace(raystart, raydir, m->vertstart, m->tristart + i * 3, 3, &objmtx) )
+				if ( (d = (finalintersectpnt - Editor->campos).sqlen2xz()) < bestpickdist )
+				{
+					bestpickdist = d;
+					bestpickobj = o;
+					bestpickintersectionpnt = finalintersectpnt;
+				}
+	}
+	for ( auto c = o->subobj.begin(); c != o->subobj.end(); c++ )
+		IsRayIntersectingObject(raystart, raydir, *c, &objmtx);
+	return 0;
+}
+
+void HandleInput()
+{
+	Matrix m1, m2, crm; Vector3 cd(0, 0, 1), ncd;
+	CreateRotationXMatrix(&m1, Editor->camori.x);
+	CreateRotationYMatrix(&m2, Editor->camori.y);
+	MultiplyMatrices(&crm, &m1, &m2);
+	TransformVector3(&ncd, &cd, &crm);
+	Vector3 crabnn;
+	Vec3Cross(&crabnn, &Vector3(0, 1, 0), &ncd);
+	Vector3 crab = crabnn.normal();
+
+	Vector3 cammove(0, 0, 0);
+	ImGuiIO& io = ImGui::GetIO();
+	if ( !io.WantCaptureKeyboard )
+	{
+		if ( io.KeysDown['A'] )
+			cammove -= crab;
+		if ( io.KeysDown['D'] )
+			cammove += crab;
+		if ( io.KeysDown['W'] )
+			cammove += ncd;
+		if ( io.KeysDown['S'] )
+			cammove -= ncd;
+		if ( io.KeysDown['E'] )
+			cammove.y += 1;
+		if ( io.KeysDown['C'] )
+			cammove.y -= 1;
+
+	}
+
+	if ( io.KeysDown['G'] )
+	{
+		Editor->campos = Editor->cursorpos;
+	}
+
+	if ( io.KeysDown['H'] )
+	{
+		EditHide(Editor->selobj);
+		//Editor->selobj = NULL;
+	}
+
+	if ( io.KeysDown['U'] )
+	{
+		EditUnHide(Editor->selobj);
+	}
+
+
+	Editor->campos += cammove * Editor->camspeed * (io.KeyShift ? 2 : 1);
+	if ( io.MouseDown[0] && !io.WantCaptureMouse && !(io.KeyAlt || io.KeyCtrl) )
+	{
+		Editor->camori.y += io.MouseDelta.x * 0.01f;
+		Editor->camori.x += io.MouseDelta.y * 0.01f;
+	}
+	if ( !io.WantCaptureMouse && Editor->viewobj )
+	{
+		if ( io.MouseClicked[1] || (io.MouseClicked[0] && (io.KeyAlt || io.KeyCtrl)) )
+		{
+			Matrix lookat, persp;
+			CreatePerspectiveMatrix(&persp, 60 * 3.141 / 180, screen_width / screen_height, 1, 10000);
+			CreateLookAtLHViewMatrix(&lookat, &Editor->campos, &(Editor->campos + ncd), &Vector3(0, 1, 0));
+			Matrix matView = lookat * persp;
+
+			Vector3 raystart, raydir;
+			float ys = 1 / tan(60 * 3.141 / 180 / 2);
+			float xs = ys / ((float)screen_width / (float)screen_height);
+			ImVec2 mspos = ImGui::GetMousePos();
+			float msx = mspos.x * 2.0f / (float)screen_width - 1.0f;
+			float msy = mspos.y * 2.0f / (float)screen_height - 1.0f;
+			Vector3 hi = ncd.cross(crab);
+			raystart = Editor->campos + ncd + crab * (msx / xs) - hi * (msy / ys);
+			raydir = raystart - Editor->campos;
+
+			bestpickobj = 0;
+			bestpickdist = HUGE_VAL; //100000000000000000.0f;
+			Matrix mtx; CreateIdentityMatrix(&mtx);
+			IsRayIntersectingObject(&raystart, &raydir, Editor->viewobj, &mtx);
+			if ( io.KeyAlt )
+			{
+				if ( bestpickobj && Editor->selobj )
+					Editor->selobj->position = bestpickintersectionpnt;
+			}
+			else
+				Editor->selobj = bestpickobj;
+			Editor->cursorpos = bestpickintersectionpnt;
+		}
+	}
 }

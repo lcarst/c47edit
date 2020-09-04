@@ -106,12 +106,14 @@ extern char *lastspkfn;
 extern void *zipmem;
 extern uint zipsize;
 
+bool ObjInObj(GameObject *a, GameObject *b);
 char* GetObjTypeString(uint ot);
+GameObject* FindObjectNamed(char *name, GameObject *sup);
 void LoadSceneSPK(char *fn);
 void ModifySPK();
 void SaveSceneSPK(char *fn);
 void RemoveObject(GameObject *o);
 GameObject* DuplicateObject(GameObject *o, GameObject *parent);
 void GiveObject(GameObject *o, GameObject *t);
-
+GameObject *IsRayIntersectingObject(Vector3 *raystart, Vector3 *raydir, GameObject *o, Matrix *worldmtx);
 

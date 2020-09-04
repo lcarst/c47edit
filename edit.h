@@ -30,6 +30,17 @@ struct Editor_t
 extern Editor_t *Editor;
 
 void InitEditor();
-void Hide(GameObject *obj);
-void UnHide(GameObject *obj);
+void CamGoToPos(Vector3 newpos);
+void EditSelect(GameObject *obj, bool setCursor);
+void EditSelectParent();
+void EditHide(GameObject *obj);
+void EditUnHide(GameObject *obj);
+void EditGoToObj();
+void EditGoToCursor();
+void EditPosition(Vector3 pos);
+void EditRotate(Vector3 rot);
+void EditDelete();
+void EditDuplicate();
+void EditSetToBeGiven();
 void SaveScene();
+bool ShouldIgnore(GameObject *o);

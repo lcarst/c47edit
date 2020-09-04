@@ -6,6 +6,7 @@
 #include "global.h"
 #include "c47map.h"
 #include "miniz.h"
+#include "edit.h"
 #include <functional>
 #include <sstream>
 #include <array>
@@ -64,6 +65,30 @@ char *GetObjTypeString(uint ot)
 	char *otname = "?";
 	if (ot < 0x70) otname = objtypenames[ot];
 	return otname;
+}
+
+GameObject* FindObjectNamed(char *name, GameObject *sup)
+{
+	if ( !strcmp(sup->name, name) )
+		return sup;
+	else
+		for ( auto e = sup->subobj.begin(); e != sup->subobj.end(); e++ )
+		{
+			GameObject *r = FindObjectNamed(name, *e);
+			if ( r ) return r;
+		}
+	return 0;
+}
+
+bool ObjInObj(GameObject *a, GameObject *b)
+{
+	GameObject *o = a;
+	while ( o = o->parent )
+	{
+		if ( o == b )
+			return true;
+	}
+	return false;
 }
 
 void LoadSceneSPK(char *fn)
@@ -629,3 +654,5 @@ void GiveObject(GameObject *o, GameObject *t)
 	}
 	t->subobj.push_back(o);
 }
+
+
