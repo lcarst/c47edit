@@ -63,6 +63,12 @@
     <ClCompile Include="c47map.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="chunk.h">
@@ -102,6 +108,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="c47map.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

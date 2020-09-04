@@ -6,6 +6,7 @@
 #pragma once
 
 struct GameObject;
+struct Map_t;
 
 class goref
 {
@@ -84,6 +85,9 @@ struct GameObject
 
 	uint refcount;
 
+	// Meta
+	bool hidden = false;
+
 	GameObject(char *nName = "Unnamed", int nType = 0) : name(strdup(nName)), type(nType),
 		pdbloff(0), pexcoff(0), flags(0), mesh(0), color(0), position(0,0,0), light(0), state(0), parent(0), root(0),
 		refcount(0)
@@ -97,8 +101,7 @@ inline void goref::deref() { if (obj) { obj->refcount--; obj = 0; } }
 inline void goref::set(GameObject * n) { deref(); obj = n; if (obj) obj->refcount++; }
 
 
-//extern Chunk *Map->pver, *Map->pfac, *Map->pftx, *Map->puvc;
-extern GameObject *rootobj, *cliprootobj, *superroot;
+
 extern char *lastspkfn;
 extern void *zipmem;
 extern uint zipsize;
@@ -108,7 +111,7 @@ void LoadSceneSPK(char *fn);
 void ModifySPK();
 void SaveSceneSPK(char *fn);
 void RemoveObject(GameObject *o);
-GameObject* DuplicateObject(GameObject *o, GameObject *parent = rootobj);
+GameObject* DuplicateObject(GameObject *o, GameObject *parent);
 void GiveObject(GameObject *o, GameObject *t);
 
 

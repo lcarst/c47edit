@@ -13,51 +13,49 @@
 #include <unordered_map>
 
 char *objtypenames[] = {
-	// 0x00
+	// 0 0x00
 	"Z0", "ZGROUP", "ZSTDOBJ", "ZCAMERA",
 	"?", "?", "?", "?",
 	"?", "?", "?", "Z2DOBJ",
 	"?", "ZENVIRONMENT", "?", "?",
 
-	// 0x10
+	// 16 0x10
 	"?", "?", "ZSNDOBJ", "?",
 	"?", "?", "?", "?",
 	"?", "?", "ZLIST", "? ",
 	"?", "?", "?", "?",
 
-	// 0x20
+	// 32 0x20
 	"?", "ZROOM", "?", "ZSPOTLIGHT",
 	"?", "?", "?", "ZIKLNKOBJ",
 	"?", "?", "?", "ZEDITORGROUP",
 	"ZWINOBJ", "ZCHAROBJ", "ZWINGROUP", "ZFONT",
 
-	// 0x30
+	// 48 0x30
 	"ZWINDOWS", "ZWINDOW", "?", "ZBUTTON",
 	"?", "?", "?", "?",
 	"ZLINEOBJ", "?", "ZTTFONT", "ZSCROLLAREA",
 	"?", "?", "?", "?",
 
-	// 0x40
+	// 64 0x40
 	"ZSCROLLBAR", "ZSCALESTDOBJ", "?", "?",
 	"?", "?", "?", "?",
 	"?", "?", "?", "?",
 	"?", "?", "?", "?",
 
-	// 0x50
+	// 80 0x50
 	"?", "?", "?", "?",
 	"?", "?", "?", "?",
 	"?", "?", "?", "?",
 	"?", "?", "?", "?",
 
-	// 0x60
+	// 96 0x60
 	"?", "?", "?", "?",
 	"?", "?", "ZITEMGROUP", "?",
 	"?", "ZITEMGROUPWEAPON", "ZITEMGROUPAMMO", "?",
 	"?", "?", "?", "?",
 };
 
-//Chunk *Map->pver, *Map->pfac, *Map->pftx, *Map->puvc, *Map->pdbl;
-GameObject *rootobj, *cliprootobj, *superroot;
 char *lastspkfn = 0;
 void *zipmem = 0; uint zipsize = 0;
 
@@ -106,14 +104,14 @@ void LoadSceneSPK(char *fn)
 	if (!(Map->prot && Map->pclp && Map->phea && Map->pnam && Map->ppos && Map->pmtx && Map->pver && Map->pfac && Map->pftx && Map->puvc && Map->pdbl))
 		ferr("One or more important chunks were not found in Pack.SPK .");
 
-	rootobj = new GameObject("Root", ZROOM /*ZROOM*/);
-	cliprootobj = new GameObject("ClipRoot", ZROOM /*ZROOM*/);
-	superroot = new GameObject("SuperRoot", ZROOM);
-	superroot->subobj.push_back(rootobj);
-	superroot->subobj.push_back(cliprootobj);
-	rootobj->parent = cliprootobj->parent = superroot;
-	rootobj->root = rootobj;
-	cliprootobj->root = cliprootobj;
+	Map->rootobj = new GameObject("Root", ZROOM /*ZROOM*/);
+	Map->cliprootobj = new GameObject("ClipRoot", ZROOM /*ZROOM*/);
+	Map->superroot = new GameObject("SuperRoot", ZROOM);
+	Map->superroot->subobj.push_back(Map->rootobj);
+	Map->superroot->subobj.push_back(Map->cliprootobj);
+	Map->rootobj->parent = Map->cliprootobj->parent = Map->superroot;
+	Map->rootobj->root = Map->rootobj;
+	Map->cliprootobj->root = Map->cliprootobj;
 
 	// First, create the objects and an ID<->GameObject* map.
 	std::map<uint, GameObject*> idobjmap;
@@ -141,8 +139,8 @@ void LoadSceneSPK(char *fn)
 			z(&c->subchunks[i], o);
 	};
 
-	y(Map->pclp, cliprootobj);
-	y(Map->prot, rootobj);
+	y(Map->pclp, Map->cliprootobj);
+	y(Map->prot, Map->rootobj);
 
 	// Then read/load the object properties.
 	std::function<void(Chunk*, GameObject*)> g;
@@ -238,6 +236,7 @@ void LoadSceneSPK(char *fn)
 				break;
 			default:
 				e.str = "ERROR";
+				// TODO: Better handling of this
 				//ferr("Unknown DBL entry type!");
 			}
 			o->dbl.push_back(e);
@@ -255,8 +254,8 @@ void LoadSceneSPK(char *fn)
 			g(&c->subchunks[i], o);
 	};
 
-	f(Map->pclp, cliprootobj);
-	f(Map->prot, rootobj);
+	f(Map->pclp, Map->cliprootobj);
+	f(Map->prot, Map->rootobj);
 }
 
 struct DBLHash
@@ -442,8 +441,8 @@ void ModifySPK()
 			z(*e);
 		}
 	};
-	z(cliprootobj);
-	z(rootobj);
+	z(Map->cliprootobj);
+	z(Map->rootobj);
 
 	auto f = [](Chunk *c, GameObject *o) {
 		c->num_subchunks = o->subobj.size();
@@ -453,14 +452,14 @@ void ModifySPK()
 		for (auto e = o->subobj.begin(); e != o->subobj.end(); e++)
 		{
 			Chunk *s = &c->subchunks[i++];
-			MakeObjChunk(s, *e, o==cliprootobj);
+			MakeObjChunk(s, *e, o==Map->cliprootobj);
 		}
 		c->maindata = malloc(4);
 		c->maindata_size = 4;
 		*(uint32_t*)c->maindata = moc_objcount;
 	};
-	f(nrot, rootobj);
-	f(nclp, cliprootobj);
+	f(nrot, Map->rootobj);
+	f(nclp, Map->cliprootobj);
 
 	*Map->prot = *nrot;
 	*Map->pclp = *nclp;

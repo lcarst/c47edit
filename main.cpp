@@ -8,6 +8,8 @@
 #include "texture.h"
 #include "edit.h"
 #include "c47map.h"
+#include "gui.h"
+#include "window.h"
 #include <Windows.h>
 #include <gl/GL.h>
 #include <gl/GLU.h>
@@ -18,428 +20,32 @@
 #include "imgui/imgui_impl_opengl2.h"
 #include "imgui/imgui_impl_win32.h"
 
-GameObject *selobj = 0, *viewobj = 0;
+
 float objviewscale = 0.0f;
-Vector3 campos(0, 0, -50), camori(0, 0, 0);
-float camspeed = 32;
-
-bool wireframe = false;
-bool findsel = false;
-
-bool cullBackfaces = true;
-bool outline = true;
-
-bool drawSolid = true;
-bool drawNonSolid = true;
-
-bool drawBounds = false;
-bool drawGates = false;
-bool drawOther = false;
-
-uint32_t framesincursec = 0, framespersec = 0, lastfpscheck;
-Vector3 cursorpos(0, 0, 0);
 
 GameObject *bestpickobj = 0;
 float bestpickdist;
 Vector3 bestpickintersectionpnt(0, 0, 0);
 
-extern HWND hWindow;
+uint32_t framesincursec = 0, lastfpscheck; 
 
-void ferr(char *str)
-{
-	//printf("Error: %s\n", str);
-	MessageBox(hWindow, str, "Fatal Error", 16);
-	exit(-1);
-}
+#define swap_rb(a) ( (a & 0xFF00FF00) | ((a & 0xFF0000) >> 16) | ((a & 255) << 16) )
 
-void warn(char *str)
-{
-	MessageBox(hWindow, str, "Warning", 48);
-}
 
-bool ObjInObj(GameObject *a, GameObject *b)
-{
-	GameObject *o = a;
-	while ( o = o->parent )
-	{
-		if ( o == b )
-			return true;
-	}
-	return false;
-}
+
+
+
 
 void CamGoToPos(Vector3 newpos)
 {
-	campos = newpos;
+	Editor->campos = newpos;
 	// Move back a bit so we can see it
 	// TODO
 }
 
-void IGOTNode(GameObject *o)
-{
-	bool op, colorpushed = 0;
-	if ( o == superroot )
-		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
-	if ( findsel )
-		if ( ObjInObj(selobj, o) )
-			ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Always);
-	if ( o == viewobj )
-	{
-		colorpushed = 1;
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 1, 0, 1));
-	}
-	op = ImGui::TreeNodeEx(o, (o->subobj.empty() ? ImGuiTreeNodeFlags_Leaf : 0) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ((o == selobj) ? ImGuiTreeNodeFlags_Selected : 0), "%s(0x%X)::%s", GetObjTypeString(o->type), o->type, o->name);
-	if ( colorpushed )
-		ImGui::PopStyleColor();
-	if ( findsel )
-		if ( selobj == o )
-			ImGui::SetScrollHere();
-	if ( ImGui::IsItemHovered() && ImGui::IsMouseReleased(0) )
-	{
-		ImGuiIO& io = ImGui::GetIO();
-		if ( io.KeyShift )
-			viewobj = o;
-		else
-		{
-			selobj = o;
-			cursorpos = selobj->position;
-		}
-	}
-	if ( ImGui::IsItemActive() )
-		if ( ImGui::BeginDragDropSource() )
-		{
-			ImGui::SetDragDropPayload("GameObject", &o, sizeof(GameObject*));
-			ImGui::Text("GameObject: %s", o->name);
-			ImGui::EndDragDropSource();
-		}
-	if ( op )
-	{
-		for ( auto e = o->subobj.begin(); e != o->subobj.end(); e++ )
-			IGOTNode(*e);
-		ImGui::TreePop();
-	}
-}
-
-void IGObjectTree()
-{
-	ImGui::SetNextWindowPos(ImVec2(3, 3), ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize(ImVec2(316, 652), ImGuiCond_FirstUseEver);
-	ImGui::Begin("Object tree", 0, ImGuiWindowFlags_HorizontalScrollbar);
-	IGOTNode(superroot);
-	findsel = false;
-	ImGui::End();
-}
-
-Vector3 GetYXZRotVecFromMatrix(Matrix *m)
-{
-	float b = atan2(m->_31, m->_33);
-	float j = atan2(m->_12, m->_22);
-	float a = asin(-m->_32);
-	return Vector3(a, b, j);
-}
-
-#define swap_rb(a) ( (a & 0xFF00FF00) | ((a & 0xFF0000) >> 16) | ((a & 255) << 16) )
-
-GameObject *objtogive = 0;
-
-void IGObjectInfo()
-{
-	ImGui::SetNextWindowPos(ImVec2(1205, 3), ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize(ImVec2(270, 445), ImGuiCond_FirstUseEver);
-	ImGui::Begin("Object information");
-	if ( !selobj )
-		ImGui::Text("No object selected.");
-	else
-	{
-
-		if ( ImGui::Button("Go to object") )
-		{
-			if ( selobj )
-				campos = selobj->position;
-		}
-		ImGui::SameLine();
-		if ( ImGui::Button("Go to cursor") )
-		{
-			if ( selobj )
-				campos = cursorpos;
-		}
-
-		if ( ImGui::Button("Find in tree") )
-			findsel = true;
-		if ( selobj->parent )
-		{
-			ImGui::SameLine();
-			if ( ImGui::Button("Select parent") )
-				selobj = selobj->parent;
-		}
-		ImGui::Separator();
-
-		bool wannadel = 0;
-		if ( ImGui::Button("Delete") )
-			wannadel = 1;
-
-		ImGui::SameLine();
-		if ( ImGui::Button("Duplicate") )
-			if ( selobj->root )
-				DuplicateObject(selobj, selobj->root);
 
 
-		if ( ImGui::Button("Set to be given") )
-			objtogive = selobj;
-		ImGui::SameLine();
-		if ( ImGui::Button("Give it here!") )
-			if ( objtogive )
-				GiveObject(objtogive, selobj);
-
-		ImGui::Separator();
-
-		char tb[256]; tb[255] = 0; strcpy(tb, selobj->name);
-		if ( ImGui::InputText("Name", tb, 255) )
-		{
-			free(selobj->name);
-			selobj->name = strdup(tb);
-		}
-		ImGui::InputScalar("State", ImGuiDataType_U32, &selobj->state);
-		ImGui::InputScalar("Type", ImGuiDataType_U32, &selobj->type);
-		ImGui::InputScalar("Flags", ImGuiDataType_U32, &selobj->flags);
-		ImGui::Separator();
-
-		// TEMP: Disabled
-		//ImGui::InputScalar("PDBL offset", ImGuiDataType_U32, &selobj->pdbloff, 0, 0, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
-		//ImGui::InputScalar("PEXC offset", ImGuiDataType_U32, &selobj->pexcoff, 0, 0, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
-
-		ImGui::DragFloat3("Position", &selobj->position.x);
-		/*for (int i = 0; i < 3; i++) {
-			ImGui::PushID(i);
-			ImGui::DragFloat3((i==0) ? "Matrix" : "", selobj->matrix.m[i]);
-			ImGui::PopID();
-		}*/
-		Vector3 rota = GetYXZRotVecFromMatrix(&selobj->matrix);
-		rota *= 180.0f / M_PI;
-
-
-		if ( ImGui::DragFloat3("Orientation", &rota.x) )
-		{
-
-			rota *= M_PI / 180.0f;
-			Matrix my, mx, mz;
-			CreateRotationYMatrix(&my, rota.y);
-			CreateRotationXMatrix(&mx, rota.x);
-			CreateRotationZMatrix(&mz, rota.z);
-			selobj->matrix = mz * mx * my;
-		}
-		ImGui::Text("Num. references: %u", selobj->refcount);
-		if ( ImGui::CollapsingHeader("DBL") )
-		{
-			ImGui::InputScalar("Flags", ImGuiDataType_U32, &selobj->dblflags);
-			int i = 0;
-			for ( auto e = selobj->dbl.begin(); e != selobj->dbl.end(); e++ )
-			{
-				ImGui::PushID(i++);
-				ImGui::Text("%1X", e->flags >> 4);
-				ImGui::SameLine();
-				switch ( e->type )
-				{
-					case 1:
-						ImGui::InputDouble("Double", &e->dbl); break;
-					case 2:
-						ImGui::InputFloat("Float", &e->flt); break;
-					case 3:
-					case 0xA:
-					case 0xB:
-					case 0xC:
-					{
-						char sb[10];
-						sprintf(sb, "Int %X", e->type);
-						ImGui::InputInt(sb, (int*)&e->u32); break;
-					}
-					case 4:
-					case 5:
-					{
-						char sb[256];
-						strncpy(sb, e->str, 255); sb[255] = 0;
-						if ( ImGui::InputText((e->type == 5) ? "Filename" : "String", sb, 256) )
-						{
-							free(e->str);
-							e->str = strdup(sb);
-						}
-						break;
-					}
-					case 6:
-						ImGui::Separator(); break;
-					case 7:
-						ImGui::Text("Data (%X): %u bytes", e->type, e->datsize); break;
-					case 8:
-						if ( e->obj.valid() )
-							ImGui::Text("Object: %s", e->obj->name);
-						else
-							ImGui::Text("Object: Invalid");
-						if ( ImGui::BeginDragDropTarget() )
-						{
-							if ( const ImGuiPayload *pl = ImGui::AcceptDragDropPayload("GameObject") )
-							{
-								e->obj = *(GameObject**)pl->Data;
-							}
-							ImGui::EndDragDropTarget();
-						}
-						break;
-					case 9:
-						ImGui::Text("Objlist: %u objects", e->nobjs);
-						ImGui::ListBoxHeader("Objlist", ImVec2(0, 64));
-						for ( int i = 0; i < e->nobjs; i++ )
-						{
-							ImGui::Text("%s", e->objlist[i]->name);
-							if ( ImGui::BeginDragDropTarget() )
-							{
-								if ( const ImGuiPayload *pl = ImGui::AcceptDragDropPayload("GameObject") )
-								{
-									e->objlist[i] = *(GameObject**)pl->Data;
-								}
-								ImGui::EndDragDropTarget();
-							}
-						}
-						ImGui::ListBoxFooter();
-						break;
-					case 0x3F:
-						ImGui::Text("End"); break;
-					default:
-						ImGui::Text("Unknown type %u", e->type); break;
-				}
-				ImGui::PopID();
-			}
-		}
-		if ( selobj->mesh )
-			if ( ImGui::CollapsingHeader("Mesh") )
-			{
-				//ImGui::Separator();
-				//ImGui::Text("Mesh");
-				ImVec4 c = ImGui::ColorConvertU32ToFloat4(swap_rb(selobj->color));
-				if ( ImGui::ColorEdit4("Color", &c.x, 0) )
-					selobj->color = swap_rb(ImGui::ColorConvertFloat4ToU32(c));
-				ImGui::Text("Vertex start index: %u", selobj->mesh->vertstart);
-				ImGui::Text("Quad start index:   %u", selobj->mesh->quadstart);
-				ImGui::Text("Tri start index:    %u", selobj->mesh->tristart);
-				ImGui::Text("Vertex count: %u", selobj->mesh->numverts);
-				ImGui::Text("Quad count:   %u", selobj->mesh->numquads);
-				ImGui::Text("Tri count:    %u", selobj->mesh->numtris);
-				ImGui::Text("FTXO offset: 0x%X", selobj->mesh->ftxo);
-			}
-		if ( selobj->light )
-			if ( ImGui::CollapsingHeader("Light") )
-			{
-				//ImGui::Separator();
-				//ImGui::Text("Light");
-				char s[] = "Param ?\0";
-				for ( int i = 0; i < 7; i++ )
-				{
-					s[6] = '0' + i;
-					ImGui::InputScalar(s, ImGuiDataType_U32, &selobj->light->param[i], 0, 0, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
-				}
-			}
-		if ( wannadel )
-		{
-			if ( selobj->refcount > 0 )
-				warn("It's not possible to remove an object that is referenced by other objects!");
-			else
-			{
-				RemoveObject(selobj);
-				selobj = 0;
-			}
-		}
-	}
-	ImGui::End();
-}
-
-void IGMain()
-{
-	ImGui::SetNextWindowPos(ImVec2(1005, 453), ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize(ImVec2(270, 203), ImGuiCond_FirstUseEver);
-	ImGui::Begin("c47edit");
-	ImGui::Text("c47edit - Version " APP_VERSION);
-	if ( ImGui::Button("Save Scene") )
-	{
-		char newfn[300]; newfn[299] = 0;
-		_splitpath(lastspkfn, 0, 0, newfn, 0);
-		strcat(newfn, ".zip");
-		char *s = strrchr(newfn, '@');
-		if ( s )
-			s += 1;
-		else
-			s = newfn;
-
-		OPENFILENAME ofn; char zipfilename[1024]; // = "lol"; //zipfilename[0] = 0;
-		strcpy(zipfilename, s);
-		memset(&ofn, 0, sizeof(OPENFILENAME));
-		ofn.lStructSize = sizeof(OPENFILENAME);
-		ofn.hwndOwner = hWindow;
-		ofn.hInstance = GetModuleHandle(0);
-		ofn.lpstrFilter = "Scene ZIP archive\0*.zip\0\0\0";
-		ofn.lpstrFile = zipfilename;
-		ofn.nMaxFile = 1023;
-		ofn.lpstrTitle = "Save Scene ZIP archive as...";
-		ofn.Flags = OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
-		ofn.lpstrDefExt = "zip";
-		if ( GetSaveFileName(&ofn) )
-			SaveSceneSPK(zipfilename);
-	}
-	ImGui::SameLine();
-	if ( ImGui::Button("About...") )
-		MessageBox(hWindow, "c47edit\nUnofficial scene editor for \"Hitman: Codename 47\"\n\n"
-				   "(C) 2018 AdrienTD\nLicensed under the GPL 3.\nSee LICENSE file for details.\n\n"
-				   "3rd party libraries used:\n- Dear ImGui (MIT license)\n- Miniz (MIT license)\nSee LICENSE_* files for copyright and licensing of these libraries.", "c47edit", 0);
-	//ImGui::DragFloat("Scale", &objviewscale, 0.1f);
-	ImGui::DragFloat("Cam speed", &camspeed, 0.1f);
-	ImGui::DragFloat3("Cam pos", &campos.x, 0.1f);
-	ImGui::DragFloat2("Cam ori", &camori.x, 0.1f);
-	ImGui::DragFloat3("Cursor pos", &cursorpos.x);
-	ImGui::Checkbox("Wireframe", &wireframe);
-	ImGui::SameLine();
-	ImGui::Checkbox("Textured", &rendertextures);
-
-	ImGui::Checkbox("Cull backfaces", &cullBackfaces);
-	ImGui::SameLine();
-	ImGui::Checkbox("Draw outlines", &outline);
-	ImGui::Separator();
-	ImGui::Checkbox("Draw solid", &drawSolid);
-	ImGui::SameLine();
-	ImGui::Checkbox("Draw non-solid", &drawNonSolid);
-	ImGui::Checkbox("Draw bounds (28)", &drawBounds);
-	ImGui::Checkbox("Draw gates (21)", &drawGates);
-	ImGui::Checkbox("Draw other", &drawOther);
-
-	ImGui::Text("FPS: %u", framespersec);
-	ImGui::End();
-}
-
-uint curtexid = 0;
-
-void IGTest()
-{
-	ImGui::Begin("Debug/Test");
-	if ( ImGui::Button("ReadTextures()") )
-		ReadTextures();
-	static const int one = 1;
-	ImGui::InputScalar("Texture ID", ImGuiDataType_U32, &curtexid, &one);
-	auto l = texmap.lower_bound(curtexid);
-	if ( ImGui::Button("Next") )
-		if ( l != texmap.end() )
-		{
-			auto ln = std::next(l);
-			if ( ln != texmap.end() )
-				curtexid = ln->first;
-		}
-	auto t = texmap.find(curtexid);
-	if ( t != texmap.end() )
-		ImGui::Image(t->second, ImVec2(256, 256));
-	else
-		ImGui::Text("Texture %u not found.", curtexid);
-
-	//#include "unused/moredebug.inc"
-
-	ImGui::End();
-}
-
-GameObject* FindObjectNamed(char *name, GameObject *sup = rootobj)
+GameObject* FindObjectNamed(char *name, GameObject *sup)
 {
 	if ( !strcmp(sup->name, name) )
 		return sup;
@@ -457,20 +63,23 @@ static bool shouldIgnore(GameObject *o)
 	if ( o == NULL )
 		return true;
 
+	if ( o->hidden )
+		return true;
+
 	if ( o->type == ZSTDOBJ )
 	{
 		bool solid = (bool)o->dbl[4].u32;
-		if ( solid && !drawSolid )
+		if ( solid && !Editor->drawSolid )
 			return true;
-		if ( !solid && !drawNonSolid )
+		if ( !solid && !Editor->drawNonSolid )
 			return true;
 		return false;
 	}
-	if ( o->type == ZBOUNDS_temp && !drawBounds )
+	if ( o->type == ZBOUNDS_28 && !Editor->drawBounds )
 		return true;
-	if ( o->type == ZGATE_temp && !drawGates )
+	if ( o->type == ZGATE_21 && !Editor->drawGates )
 		return true;
-	if ( !drawOther && (o->type != ZSTDOBJ && o->type != ZBOUNDS_temp && o->type != ZGATE_temp) )
+	if ( !Editor->drawOther && (o->type != ZSTDOBJ && o->type != ZBOUNDS_28 && o->type != ZGATE_21) )
 		return true;
 
 
@@ -491,7 +100,7 @@ void RenderObject(GameObject *o, bool shade)
 	//if ( o->mesh && (o->flags & 0x20) && !ignore )
 	if ( o->mesh && !ignore )
 	{
-		if ( !rendertextures )
+		if ( !Editor->rendertextures )
 		{
 			uint clr = swap_rb(o->color);
 			if ( shade )
@@ -500,7 +109,7 @@ void RenderObject(GameObject *o, bool shade)
 			}
 			else
 			{
-				if ( o == selobj )
+				if ( o == Editor->selobj )
 				{
 					glLineWidth(3);
 					glColor4f(1, 1, 0, 1);
@@ -543,7 +152,7 @@ bool IsRayIntersectingFace(Vector3 *raystart, Vector3 *raydir, int startvertex, 
 	float planenorm_dot_raydir = planenorm.dot(*raydir);
 
 	// Only select by front faces if backfaces are culled
-	if ( planenorm_dot_raydir >= 0 && cullBackfaces ) goto irifend;
+	if ( planenorm_dot_raydir >= 0 && Editor->cullBackfaces ) goto irifend;
 
 	float param = -(planenorm.dot(*raystart) + planeord) / planenorm_dot_raydir;
 	if ( param < 0 ) goto irifend;
@@ -596,7 +205,7 @@ GameObject *IsRayIntersectingObject(Vector3 *raystart, Vector3 *raydir, GameObje
 		Mesh *m = o->mesh;
 		for ( int i = 0; i < m->numquads; i++ )
 			if ( IsRayIntersectingFace(raystart, raydir, m->vertstart, m->quadstart + i * 4, 4, &objmtx) )
-				if ( (d = (finalintersectpnt - campos).sqlen2xz()) < bestpickdist )
+				if ( (d = (finalintersectpnt - Editor->campos).sqlen2xz()) < bestpickdist )
 				{
 					bestpickdist = d;
 					bestpickobj = o;
@@ -604,7 +213,7 @@ GameObject *IsRayIntersectingObject(Vector3 *raystart, Vector3 *raydir, GameObje
 				}
 		for ( int i = 0; i < m->numtris; i++ )
 			if ( IsRayIntersectingFace(raystart, raydir, m->vertstart, m->tristart + i * 3, 3, &objmtx) )
-				if ( (d = (finalintersectpnt - campos).sqlen2xz()) < bestpickdist )
+				if ( (d = (finalintersectpnt - Editor->campos).sqlen2xz()) < bestpickdist )
 				{
 					bestpickdist = d;
 					bestpickobj = o;
@@ -639,9 +248,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 	bool appnoquit = true;
 	InitWindow();
 
-	ImGui::CreateContext(0);
-	ImGui_ImplWin32_Init((void*)hWindow);
-	ImGui_ImplOpenGL2_Init();
+	GuiSetup();
+
 	lastfpscheck = GetTickCount();
 
 	while ( appnoquit = HandleWindow() )
@@ -651,10 +259,10 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 		else
 		{
 			Matrix m1, m2, crm; Vector3 cd(0, 0, 1), ncd;
-			CreateRotationXMatrix(&m1, camori.x);
-			CreateRotationYMatrix(&m2, camori.y);
+			CreateRotationXMatrix(&m1, Editor->camori.x);
+			CreateRotationYMatrix(&m2, Editor->camori.y);
 			MultiplyMatrices(&crm, &m1, &m2);
-			//CreateRotationYXZMatrix(&crm, camori.y, camori.x, 0);
+			//CreateRotationYXZMatrix(&crm, Editor->camori.y, Editor->camori.x, 0);
 			TransformVector3(&ncd, &cd, &crm);
 			Vector3 crabnn;
 			Vec3Cross(&crabnn, &Vector3(0, 1, 0), &ncd);
@@ -699,29 +307,33 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 
 				if ( io.KeysDown['G'] )
 				{
-					campos = cursorpos;
+					Editor->campos = Editor->cursorpos;
 				}
 
+				if ( io.KeysDown['H'] )
+				{
+					Hide(Editor->selobj);
+					//Editor->selobj = NULL;
+				}
 
-				/*
-				if (ImGui::IsKeyPressed('W'))
-					wireframe = !wireframe;
-				if (ImGui::IsKeyPressed('T'))
-					rendertextures = !rendertextures;
-					*/
+				if ( io.KeysDown['U'] )
+				{
+					UnHide(Editor->selobj);
+				}
+
 			}
-			campos += cammove * camspeed * (io.KeyShift ? 2 : 1);
+			Editor->campos += cammove * Editor->camspeed * (io.KeyShift ? 2 : 1);
 			if ( io.MouseDown[0] && !io.WantCaptureMouse && !(io.KeyAlt || io.KeyCtrl) )
 			{
-				camori.y += io.MouseDelta.x * 0.01f;
-				camori.x += io.MouseDelta.y * 0.01f;
+				Editor->camori.y += io.MouseDelta.x * 0.01f;
+				Editor->camori.x += io.MouseDelta.y * 0.01f;
 			}
-			if ( !io.WantCaptureMouse && viewobj )
+			if ( !io.WantCaptureMouse && Editor->viewobj )
 				if ( io.MouseClicked[1] || (io.MouseClicked[0] && (io.KeyAlt || io.KeyCtrl)) )
 				{
 					Matrix lookat, persp;
 					CreatePerspectiveMatrix(&persp, 60 * 3.141 / 180, screen_width / screen_height, 1, 10000);
-					CreateLookAtLHViewMatrix(&lookat, &campos, &(campos + ncd), &Vector3(0, 1, 0));
+					CreateLookAtLHViewMatrix(&lookat, &Editor->campos, &(Editor->campos + ncd), &Vector3(0, 1, 0));
 					Matrix matView = lookat * persp;
 
 					Vector3 raystart, raydir;
@@ -731,33 +343,25 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 					float msx = mspos.x * 2.0f / (float)screen_width - 1.0f;
 					float msy = mspos.y * 2.0f / (float)screen_height - 1.0f;
 					Vector3 hi = ncd.cross(crab);
-					raystart = campos + ncd + crab * (msx / xs) - hi * (msy / ys);
-					raydir = raystart - campos;
+					raystart = Editor->campos + ncd + crab * (msx / xs) - hi * (msy / ys);
+					raydir = raystart - Editor->campos;
 
 					bestpickobj = 0;
 					bestpickdist = HUGE_VAL; //100000000000000000.0f;
 					Matrix mtx; CreateIdentityMatrix(&mtx);
-					IsRayIntersectingObject(&raystart, &raydir, viewobj, &mtx);
+					IsRayIntersectingObject(&raystart, &raydir, Editor->viewobj, &mtx);
 					if ( io.KeyAlt )
 					{
-						if ( bestpickobj && selobj )
-							selobj->position = bestpickintersectionpnt;
+						if ( bestpickobj && Editor->selobj )
+							Editor->selobj->position = bestpickintersectionpnt;
 					}
 					else
-						selobj = bestpickobj;
-					cursorpos = bestpickintersectionpnt;
+						Editor->selobj = bestpickobj;
+					Editor->cursorpos = bestpickintersectionpnt;
 				}
 
-			ImGui_ImplOpenGL2_NewFrame();
-			ImGui_ImplWin32_NewFrame();
-			ImGui::NewFrame();
-			IGMain();
-			IGObjectTree();
-			IGObjectInfo();
-#if 0
-			IGTest();
-#endif
-			ImGui::EndFrame();
+			GuiBegin();
+			GuiEnd();
 
 
 			BeginDrawing();
@@ -772,14 +376,14 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 			Matrix lookat, persp;
 			CreatePerspectiveMatrix(&persp, 60 * 3.141 / 180, (float)screen_width / (float)screen_height, 1, 20000);
 			glMultMatrixf(persp.v);
-			CreateLookAtLHViewMatrix(&lookat, &campos, &(campos + ncd), &Vector3(0, 1, 0));
+			CreateLookAtLHViewMatrix(&lookat, &Editor->campos, &(Editor->campos + ncd), &Vector3(0, 1, 0));
 			glMultMatrixf(lookat.v);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
 			float ovs = pow(2, objviewscale);
 			glScalef(ovs, ovs, ovs);
 
-			if ( cullBackfaces )
+			if ( Editor->cullBackfaces )
 			{
 				glEnable(GL_CULL_FACE);
 				glCullFace(GL_BACK);
@@ -789,25 +393,25 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 				glDisable(GL_CULL_FACE);
 			}
 
-			glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
+			glPolygonMode(GL_FRONT_AND_BACK, Editor->wireframe ? GL_LINE : GL_FILL);
 			BeginMeshDraw();
-			if ( viewobj )
+			if ( Editor->viewobj )
 			{
-				//glTranslatef(-viewobj->position.x, -viewobj->position.y, -viewobj->position.z);
-				RenderObject(viewobj, true);
+				//glTranslatef(-Editor->viewobj->position.x, -Editor->viewobj->position.y, -Editor->viewobj->position.z);
+				RenderObject(Editor->viewobj, true);
 
-				// Wireframe outline for flat-shaded 
-				if ( outline && !wireframe )
+				// Wireframe drawOutlines for flat-shaded 
+				if ( Editor->drawOutlines && !Editor->wireframe )
 				{
 					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-					RenderObject(viewobj, false);
+					RenderObject(Editor->viewobj, false);
 				}
 			}
 
 			glPointSize(10);
 			glColor3f(1, 1, 1);
 			glBegin(GL_POINTS);
-			glVertex3f(cursorpos.x, cursorpos.y, cursorpos.z);
+			glVertex3f(Editor->cursorpos.x, Editor->cursorpos.y, Editor->cursorpos.z);
 			glEnd();
 			glPointSize(1);
 
@@ -820,7 +424,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 			uint32_t newtime = GetTickCount();
 			if ( (uint32_t)(newtime - lastfpscheck) >= 1000 )
 			{
-				framespersec = framesincursec;
+				Editor->framespersec = framesincursec;
 				framesincursec = 0;
 				lastfpscheck = newtime;
 			}

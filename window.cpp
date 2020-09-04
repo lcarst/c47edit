@@ -72,3 +72,8 @@ bool HandleWindow()
 	}
 	return true;
 }
+
+HWND GetWindow()
+{
+	return hWindow;
+}

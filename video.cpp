@@ -6,6 +6,7 @@
 #include "global.h"
 #include "texture.h"
 #include "c47map.h"
+#include "edit.h"
 #include <Windows.h>
 #include <gl/GL.h>
 
@@ -15,7 +16,7 @@ typedef BOOL(APIENTRY *gli_wglSwapIntervalEXT)(int n);
 HDC whdc; HGLRC glrc;
 uint drawframes = 0;
 extern HWND hWindow;
-bool rendertextures = false;
+
 
 void InitVideo()
 {
@@ -63,7 +64,7 @@ void EndDrawing()
 
 void Mesh::draw()
 {
-	if (!rendertextures)
+	if (!Editor->rendertextures)
 	{
 		glVertexPointer(3, GL_FLOAT, 6, (float*)Map->pver->maindata + this->vertstart);
 		glDrawElements(GL_QUADS, this->numquads * 4, GL_UNSIGNED_SHORT, (uint16_t*)Map->pfac->maindata + this->quadstart);
@@ -128,7 +129,7 @@ void Mesh::draw()
 
 void BeginMeshDraw()
 {
-	if (!rendertextures) {
+	if (!Editor->rendertextures) {
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glDisable(GL_TEXTURE_2D);
 	}
