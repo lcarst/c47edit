@@ -45,7 +45,7 @@ void RenderObject(GameObject *o, bool shade)
 	//if ( o->mesh && (o->flags & 0x20) && !ignore )
 	if ( o->mesh && !ignore )
 	{
-		if ( !Editor->rendertextures )
+		if ( !Options->rendertextures )
 		{
 			uint clr = swap_rb(o->color);
 			if ( shade )
@@ -97,6 +97,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 	InitWindow();
 	GuiSetup();
 
+	Editor->viewobj = Map->superroot;
+
 	bool appnoquit = true;
 	lastfpscheck = GetTickCount();
 
@@ -136,7 +138,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 			float ovs = pow(2, objviewscale);
 			glScalef(ovs, ovs, ovs);
 
-			if ( Editor->cullBackfaces )
+			if ( Options->cullBackfaces )
 			{
 				glEnable(GL_CULL_FACE);
 				glCullFace(GL_BACK);
@@ -146,7 +148,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 				glDisable(GL_CULL_FACE);
 			}
 
-			glPolygonMode(GL_FRONT_AND_BACK, Editor->wireframe ? GL_LINE : GL_FILL);
+			glPolygonMode(GL_FRONT_AND_BACK, Options->wireframe ? GL_LINE : GL_FILL);
 			BeginMeshDraw();
 			if ( Editor->viewobj )
 			{
@@ -154,7 +156,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 				RenderObject(Editor->viewobj, true);
 
 				// Wireframe drawOutlines for flat-shaded 
-				if ( Editor->drawOutlines && !Editor->wireframe )
+				if ( Options->drawOutlines && !Options->wireframe )
 				{
 					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 					RenderObject(Editor->viewobj, false);

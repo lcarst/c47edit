@@ -308,24 +308,24 @@ void IGMain()
 				   "(C) 2018 AdrienTD\nLicensed under the GPL 3.\nSee LICENSE file for details.\n\n"
 				   "3rd party libraries used:\n- Dear ImGui (MIT license)\n- Miniz (MIT license)\nSee LICENSE_* files for copyright and licensing of these libraries.", "c47edit", 0);
 	//ImGui::DragFloat("Scale", &objviewscale, 0.1f);
-	ImGui::DragFloat("Cam speed", &Editor->camspeed, 0.1f);
+	ImGui::DragFloat("Cam speed", &Options->camspeed, 0.1f);
 	ImGui::DragFloat3("Cam pos", &Editor->campos.x, 0.1f);
 	ImGui::DragFloat2("Cam ori", &Editor->camori.x, 0.1f);
 	ImGui::DragFloat3("Cursor pos", &Editor->cursorpos.x);
-	ImGui::Checkbox("Wireframe", &Editor->wireframe);
+	ImGui::Checkbox("Wireframe", &Options->wireframe);
 	ImGui::SameLine();
-	ImGui::Checkbox("Textured", &Editor->rendertextures);
+	ImGui::Checkbox("Textured", &Options->rendertextures);
 
-	ImGui::Checkbox("Cull backfaces", &Editor->cullBackfaces);
+	ImGui::Checkbox("Cull backfaces", &Options->cullBackfaces);
 	ImGui::SameLine();
-	ImGui::Checkbox("Draw outlines", &Editor->drawOutlines);
+	ImGui::Checkbox("Draw outlines", &Options->drawOutlines);
 	ImGui::Separator();
-	ImGui::Checkbox("Draw solid", &Editor->drawSolid);
+	ImGui::Checkbox("Draw solid", &Options->drawSolid);
 	ImGui::SameLine();
-	ImGui::Checkbox("Draw non-solid", &Editor->drawNonSolid);
-	ImGui::Checkbox("Draw bounds (28)", &Editor->drawBounds);
-	ImGui::Checkbox("Draw gates (21)", &Editor->drawGates);
-	ImGui::Checkbox("Draw other", &Editor->drawOther);
+	ImGui::Checkbox("Draw non-solid", &Options->drawNonSolid);
+	ImGui::Checkbox("Draw bounds (28)", &Options->drawBounds);
+	ImGui::Checkbox("Draw gates (21)", &Options->drawGates);
+	ImGui::Checkbox("Draw other", &Options->drawOther);
 
 	ImGui::Text("FPS: %u", Editor->framespersec);
 }
@@ -413,7 +413,7 @@ bool IsRayIntersectingFace(Vector3 *raystart, Vector3 *raydir, int startvertex, 
 	float planenorm_dot_raydir = planenorm.dot(*raydir);
 
 	// Only select by front faces if backfaces are culled
-	if ( planenorm_dot_raydir >= 0 && Editor->cullBackfaces ) goto irifend;
+	if ( planenorm_dot_raydir >= 0 && Options->cullBackfaces ) goto irifend;
 
 	float param = -(planenorm.dot(*raystart) + planeord) / planenorm_dot_raydir;
 	if ( param < 0 ) goto irifend;
@@ -534,7 +534,7 @@ void HandleInput()
 	}
 
 
-	Editor->campos += cammove * Editor->camspeed * (io.KeyShift ? 2 : 1);
+	Editor->campos += cammove * Options->camspeed * (io.KeyShift ? 2 : 1);
 	if ( io.MouseDown[0] && !io.WantCaptureMouse && !(io.KeyAlt || io.KeyCtrl) )
 	{
 		Editor->camori.y += io.MouseDelta.x * 0.01f;

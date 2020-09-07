@@ -64,7 +64,7 @@ void EndDrawing()
 
 void Mesh::draw()
 {
-	if (!Editor->rendertextures)
+	if (!Options->rendertextures)
 	{
 		glVertexPointer(3, GL_FLOAT, 6, (float*)Map->pver->maindata + this->vertstart);
 		glDrawElements(GL_QUADS, this->numquads * 4, GL_UNSIGNED_SHORT, (uint16_t*)Map->pfac->maindata + this->quadstart);
@@ -129,7 +129,7 @@ void Mesh::draw()
 
 void BeginMeshDraw()
 {
-	if (!Editor->rendertextures) {
+	if (!Options->rendertextures) {
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glDisable(GL_TEXTURE_2D);
 	}

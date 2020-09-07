@@ -9,11 +9,16 @@ struct Editor_t
 	GameObject *viewobj = NULL;
 	Vector3 campos;
 	Vector3 camori;
-	float camspeed = 32;
+
 	Vector3 cursorpos;
 
-	bool findsel = false;
 
+	int framespersec = 0;
+};
+
+struct Options_t
+{
+	float camspeed = 32;
 	bool cullBackfaces = true;
 	bool wireframe = false;
 	bool drawOutlines = true;
@@ -22,12 +27,11 @@ struct Editor_t
 	bool drawBounds = false;
 	bool drawGates = false;
 	bool drawOther = false;
-
 	bool rendertextures = false;
-	int framespersec = 0;
 };
 
 extern Editor_t *Editor;
+extern Options_t *Options;
 
 void InitEditor();
 void CamGoToPos(Vector3 newpos);

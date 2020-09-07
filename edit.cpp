@@ -4,14 +4,17 @@
 #include <commdlg.h>
 
 Editor_t *Editor;
+Options_t *Options;
 
 void InitEditor()
 {
+	Options = new Options_t();
+
+
 	Editor = new Editor_t();
 	Editor->campos = Vector3(0, 0, 0);
 	Editor->camori = Vector3(0, 0, 0);
 	Editor->cursorpos = Vector3(0, 0, 0);
-
 }
 
 void CamGoToPos(Vector3 newpos)
@@ -137,17 +140,17 @@ bool ShouldIgnore(GameObject *o)
 	if ( o->type == ZSTDOBJ )
 	{
 		bool solid = (bool)o->dbl[4].u32;
-		if ( solid && !Editor->drawSolid )
+		if ( solid && !Options->drawSolid )
 			return true;
-		if ( !solid && !Editor->drawNonSolid )
+		if ( !solid && !Options->drawNonSolid )
 			return true;
 		return false;
 	}
-	if ( o->type == ZBOUNDS_28 && !Editor->drawBounds )
+	if ( o->type == ZBOUNDS_28 && !Options->drawBounds )
 		return true;
-	if ( o->type == ZGATE_21 && !Editor->drawGates )
+	if ( o->type == ZGATE_21 && !Options->drawGates )
 		return true;
-	if ( !Editor->drawOther && (o->type != ZSTDOBJ && o->type != ZBOUNDS_28 && o->type != ZGATE_21) )
+	if ( !Options->drawOther && (o->type != ZSTDOBJ && o->type != ZBOUNDS_28 && o->type != ZGATE_21) )
 		return true;
 
 	return false;
