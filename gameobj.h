@@ -108,6 +108,7 @@ extern uint zipsize;
 
 bool ObjInObj(GameObject *a, GameObject *b);
 char* GetObjTypeString(uint ot);
+char* GetObjTypeStringNice(uint ot);
 GameObject* FindObjectNamed(char *name, GameObject *sup);
 void LoadSceneSPK(char *fn);
 void ModifySPK();

@@ -49,12 +49,12 @@ void InitWindow()
 	HINSTANCE hInstance = GetModuleHandle(NULL);
 	WNDCLASS wndclass = { CS_OWNDC | CS_VREDRAW | CS_HREDRAW, WndProc, 0, 0, hInstance,
 		NULL, LoadCursor(NULL, IDC_ARROW), (HBRUSH)(COLOR_WINDOW + 1), NULL, appclassname };
-	if (!RegisterClass(&wndclass)) ferr("Class registration failed.");
+	if (!RegisterClass(&wndclass)) Error("Class registration failed.");
 	RECT rect = { 0,0,screen_width,screen_height };
 	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
 	hWindow = CreateWindow(appclassname, apptitle, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
 		rect.right-rect.left, rect.bottom-rect.top, NULL, NULL, hInstance, NULL);
-	if (!hWindow) ferr("Window creation failed.");
+	if (!hWindow) Error("Window creation failed.");
 	ShowWindow(hWindow, SW_NORMAL);
 
 	InitVideo();

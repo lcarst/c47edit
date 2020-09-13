@@ -6,14 +6,14 @@
 #include "c47map.h"
 #include "window.h"
 
-void ferr(char *str)
+void Error(char *str)
 {
 	//printf("Error: %s\n", str);
 	MessageBox(GetWindow(), str, "Fatal Error", 16);
 	exit(-1);
 }
 
-void warn(char *str)
+void Warn(char *str)
 {
 	MessageBox(GetWindow(), str, "Warning", 48);
 }

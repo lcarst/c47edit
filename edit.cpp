@@ -79,8 +79,11 @@ void EditRotate(Vector3 rot)
 
 void EditDelete()
 {
+	if ( !Editor->selobj )
+		return;
+
 	if ( Editor->selobj->refcount > 0 )
-		warn("It's not possible to remove an object that is referenced by other objects!");
+		Warn("It's not possible to remove an object that is referenced by other objects!");
 	else
 	{
 		RemoveObject(Editor->selobj);
@@ -129,6 +132,9 @@ void SaveScene()
 		SaveSceneSPK(zipfilename);
 }
 
+// Dumb hax
+extern bool filterDbl;
+extern int dblToFilter;
 bool ShouldIgnore(GameObject *o)
 {
 	if ( o == NULL )
@@ -136,6 +142,9 @@ bool ShouldIgnore(GameObject *o)
 
 	if ( o->hidden )
 		return true;
+
+	if ( filterDbl && o->type == dblToFilter )
+		return false;
 
 	if ( o->type == ZSTDOBJ )
 	{

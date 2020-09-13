@@ -31,53 +31,60 @@ uint32_t framesincursec = 0, lastfpscheck;
 
 #define swap_rb(a) ( (a & 0xFF00FF00) | ((a & 0xFF0000) >> 16) | ((a & 255) << 16) )
 
-
-
-void RenderObject(GameObject *o, bool shade)
+void RenderObject(GameObject *o, bool shade, bool select)
 {
 	glPushMatrix();
 	glTranslatef(o->position.x, o->position.y, o->position.z);
 	glMultMatrixf(o->matrix.v);
 
-	bool ignore = ShouldIgnore(o);
+	if ( o == Editor->selobj )
+		select = true;
 
-	//if (o->mesh && (o->flags & 0x20)) {
-	//if ( o->mesh && (o->flags & 0x20) && !ignore )
-	if ( o->mesh && !ignore )
+	if ( !ShouldIgnore(o) )
 	{
-		if ( !Options->rendertextures )
+		if ( o->mesh )
 		{
-			uint clr = swap_rb(o->color);
-			if ( shade )
+			if ( !Options->rendertextures )
 			{
-				glColor4ubv((uint8_t*)&clr);
-			}
-			else
-			{
-				if ( o == Editor->selobj )
+				uint clr = swap_rb(o->color);
+				if ( shade )
 				{
-					glLineWidth(3);
-					glColor4f(1, 1, 0, 1);
+					glColor4ubv((uint8_t*)&clr);
 				}
 				else
 				{
-					glLineWidth(1);
-					glColor4f(0.9, 0.9, 0.9, 1);
+					if ( select )
+					{
+						glLineWidth(3);
+						glColor4f(1, 1, 0, 1);
+					}
+					else
+					{
+						glLineWidth(1);
+						glColor4f(0.9, 0.9, 0.9, 1);
+					}
 				}
 			}
+			o->mesh->draw();
 		}
-		o->mesh->draw();
+		else if ( !o->mesh && o->type != ZGROUP && Options->drawPointObjects )
+		{
+			glPointSize(20);
+			//glColor3f(0, 0, 1);
+			glBegin(GL_POINTS);
+			glVertex3f(0, 0, 0);
+			glEnd();
+			glPointSize(1);
+		}
 	}
+
 	for ( auto e = o->subobj.begin(); e != o->subobj.end(); e++ )
-		RenderObject(*e, shade);
+		RenderObject(*e, shade, select);
 	glPopMatrix();
 }
 
-//int main(int argc, char* argv[])
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode)
 {
-
-
 	OPENFILENAME ofn; char zipfilename[1024]; zipfilename[0] = 0;
 	memset(&ofn, 0, sizeof(OPENFILENAME));
 	ofn.lStructSize = sizeof(OPENFILENAME);
@@ -150,16 +157,17 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 
 			glPolygonMode(GL_FRONT_AND_BACK, Options->wireframe ? GL_LINE : GL_FILL);
 			BeginMeshDraw();
+
 			if ( Editor->viewobj )
 			{
 				//glTranslatef(-Editor->viewobj->position.x, -Editor->viewobj->position.y, -Editor->viewobj->position.z);
-				RenderObject(Editor->viewobj, true);
+				RenderObject(Editor->viewobj, true, false);
 
 				// Wireframe drawOutlines for flat-shaded 
 				if ( Options->drawOutlines && !Options->wireframe )
 				{
 					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-					RenderObject(Editor->viewobj, false);
+					RenderObject(Editor->viewobj, false, false);
 				}
 			}
 
@@ -172,8 +180,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int winmode
 
 			GuiRender();
 			EndDrawing();
-
-			//_sleep(16);
 
 			framesincursec++;
 			uint32_t newtime = GetTickCount();

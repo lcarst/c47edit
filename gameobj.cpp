@@ -60,11 +60,68 @@ char *objtypenames[] = {
 char *lastspkfn = 0;
 void *zipmem = 0; uint zipsize = 0;
 
+
+char *objName(int ot, bool fancy)
+{
+#define entry(_ot, _nicename) \
+	case _ot: otname = fancy ? _nicename : #_ot; break;
+
+	char *otname = "?";
+	switch ( ot )
+	{
+		entry(Z0, "None");
+		entry(ZGROUP, "Group");
+		entry(ZSTDOBJ, "Object");
+		entry(ZCAMERA, "Camera");
+		entry(ZGIGAOBJ, "GigaObject");
+		entry(ZEFFECT_11, "Effect?");
+		entry(ZENVIRONMENT, "Environment");
+		entry(ZPICOBJ, "Pic");
+		entry(ZSNDOBJ, "Sound");
+		entry(ZGATE_21, "Gate?");
+		entry(ZSHOTOBJ, "Shot");
+		entry(ZLIST, "List");
+		entry(ZBOUNDS_28, "Bounds?");
+		entry(ZROOM, "Room");
+		entry(ZSHAPE, "Shape");
+		entry(ZSPOTLIGHT, "Spotlight");
+		entry(ZOMNILIGHT, "Omnilight");
+		entry(ZIKNLOBJ, "IKNLObject");
+		entry(ZWINOBJ, "WinObject");
+		entry(ZCHAROBJ, "CharObject");
+		entry(ZWINGROUP, "WinGroup");
+		entry(ZFONT, "Font");
+		entry(ZWINDOWS, "Windows");
+		entry(ZWINDOW, "Window");
+		entry(ZBUTTON, "Button");
+		entry(ZLINEOBJ, "Line");
+		entry(ZTTFONT, "TTFont");
+		entry(ZSCROLLAREA, "ScrollArea");
+		entry(ZSCROLLBAR, "Scrollbar");
+		entry(ZSCALESTDOBJ, "ScaleObject");
+		entry(ZITEMGROUP, "ItemGroup");
+		entry(ZITEMGROUPWEAPON, "WeaponGroup");
+		entry(ZITEMGROUPAMMO, "AmmoGroup");
+		entry(ZPATHFINDER2, "Pathfinder2");
+		entry(ZDOOR_112, "Door?");
+		entry(ZCONDITIONLIST, "ConditionList");
+		entry(ZACTIONARBITER, "ActionArbiter");
+		entry(ZBOXPRIMITIVE, "BoxPrimitive");
+		default: break;
+	}
+#undef entry
+	return otname;
+}
+
+
 char *GetObjTypeString(uint ot)
 {
-	char *otname = "?";
-	if (ot < 0x70) otname = objtypenames[ot];
-	return otname;
+	return objName(ot, false);
+}
+
+char *GetObjTypeStringNice(uint ot)
+{
+	return objName(ot, true);
 }
 
 GameObject* FindObjectNamed(char *name, GameObject *sup)
@@ -94,12 +151,12 @@ bool ObjInObj(GameObject *a, GameObject *b)
 void LoadSceneSPK(char *fn)
 {
 	FILE *zipfile = fopen(fn, "rb");
-	if (!zipfile) ferr("Could not open the ZIP file.");
+	if (!zipfile) Error("Could not open the ZIP file.");
 	fseek(zipfile, 0, SEEK_END);
 	zipsize = ftell(zipfile);
 	fseek(zipfile, 0, SEEK_SET);
 	zipmem = malloc(zipsize);
-	if (!zipmem) ferr("Could not allocate memory to load the ZIP file.");
+	if (!zipmem) Error("Could not allocate memory to load the ZIP file.");
 	fread(zipmem, zipsize, 1, zipfile);
 	fclose(zipfile);
 
@@ -107,9 +164,9 @@ void LoadSceneSPK(char *fn)
 	Map->spkchk = new Chunk;
 	mz_zip_zero_struct(&zip);
 	mz_bool mzreadok = mz_zip_reader_init_mem(&zip, zipmem, zipsize, 0);
-	if (!mzreadok) ferr("Failed to initialize ZIP reading.");
+	if (!mzreadok) Error("Failed to initialize ZIP reading.");
 	spkmem = mz_zip_reader_extract_file_to_heap(&zip, "Pack.SPK", &spksize, 0);
-	if (!spkmem) ferr("Failed to extract Pack.SPK from ZIP archive.");
+	if (!spkmem) Error("Failed to extract Pack.SPK from ZIP archive.");
 	mz_zip_reader_end(&zip);
 	LoadChunk(Map->spkchk, spkmem);
 	free(spkmem);
@@ -127,7 +184,7 @@ void LoadSceneSPK(char *fn)
 	Map->puvc = Map->spkchk->findSubchunk('CVUP');
 	Map->pdbl = Map->spkchk->findSubchunk('LBDP');
 	if (!(Map->prot && Map->pclp && Map->phea && Map->pnam && Map->ppos && Map->pmtx && Map->pver && Map->pfac && Map->pftx && Map->puvc && Map->pdbl))
-		ferr("One or more important chunks were not found in Pack.SPK .");
+		Error("One or more important chunks were not found in Pack.SPK .");
 
 	Map->rootobj = new GameObject("Root", ZROOM /*ZROOM*/);
 	Map->cliprootobj = new GameObject("ClipRoot", ZROOM /*ZROOM*/);
@@ -540,9 +597,9 @@ void SaveSceneSPK(char *fn)
 
 	mz_bool mzr;
 	mzr = mz_zip_reader_init_mem(&inzip, zipmem, zipsize, 0);
-	if (!mzr) { warn("Couldn't reopen the original scene ZIP file."); return; }
+	if (!mzr) { Warn("Couldn't reopen the original scene ZIP file."); return; }
 	mzr = mz_zip_writer_init_file(&outzip, fn, 0);
-	if (!mzr) { warn("Couldn't create the new scene ZIP file for saving."); return; }
+	if (!mzr) { Warn("Couldn't create the new scene ZIP file for saving."); return; }
 
 	int nfiles = mz_zip_reader_get_num_files(&inzip);
 	int spkindex = mz_zip_reader_locate_file(&inzip, "Pack.SPK", 0, 0);

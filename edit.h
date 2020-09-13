@@ -27,6 +27,7 @@ struct Options_t
 	bool drawBounds = false;
 	bool drawGates = false;
 	bool drawOther = false;
+	bool drawPointObjects = true;
 	bool rendertextures = false;
 };
 

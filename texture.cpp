@@ -15,12 +15,12 @@ void ReadTextures()
 
 	mz_zip_zero_struct(&zip);
 	mz_bool mzreadok = mz_zip_reader_init_mem(&zip, zipmem, zipsize, 0);
-	if (!mzreadok) ferr("Failed to initialize ZIP reading.");
+	if (!mzreadok) Error("Failed to initialize ZIP reading.");
 	packmem = mz_zip_reader_extract_file_to_heap(&zip, "PackRepeat.PAL", &packsize, 0);
 	if (packmem)
 	{
 		FILE *repfile = fopen("Repeat.PAL", "rb");
-		if (!repfile) ferr("Could not open Repeat.PAL file.");
+		if (!repfile) Error("Could not open Repeat.PAL file.");
 		fseek(repfile, 0, SEEK_END);
 		repsize = ftell(repfile);
 		fseek(repfile, 0, SEEK_SET);
@@ -32,7 +32,7 @@ void ReadTextures()
 	else
 	{
 		packmem = mz_zip_reader_extract_file_to_heap(&zip, "Pack.PAL", &packsize, 0);
-		if(!packmem) ferr("Failed to find Pack.PAL or PackRepeat.PAL in ZIP archive.");
+		if(!packmem) Error("Failed to find Pack.PAL or PackRepeat.PAL in ZIP archive.");
 		mainchk = new Chunk;
 		LoadChunk(mainchk, packmem);
 	}
@@ -41,7 +41,7 @@ void ReadTextures()
 	if(repmem) free(repmem);
 	free(packmem);
 
-	if (mainchk->tag != 'PAL') ferr("Not a PAL chunk in Repeat.PAL");
+	if (mainchk->tag != 'PAL') Error("Not a PAL chunk in Repeat.PAL");
 
 	for (int i = 0; i < mainchk->num_subchunks; i++)
 	{
@@ -87,7 +87,7 @@ void ReadTextures()
 			else if(c->tag == 'RGBA')
 				glTexImage2D(GL_TEXTURE_2D, m, 4, texw >> m, texh >> m, 0, GL_RGBA, GL_UNSIGNED_BYTE, bmp);
 			else
-				ferr("Unknown texture format in Pack(Repeat).PAL.");
+				Error("Unknown texture format in Pack(Repeat).PAL.");
 			bmp += mmsize;
 		}
 	}
