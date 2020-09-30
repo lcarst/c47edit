@@ -69,7 +69,7 @@ void RenderObject(GameObject *o, bool shade, bool select)
 		}
 		else if ( !o->mesh && o->type != ZGROUP && Options->drawPointObjects )
 		{
-			glPointSize(20);
+			glPointSize(10);
 			//glColor3f(0, 0, 1);
 			glBegin(GL_POINTS);
 			glVertex3f(0, 0, 0);

@@ -47,7 +47,7 @@ void IGOTNode(GameObject *o)
 		else
 		{
 			Editor->selobj = o;
-			Editor->cursorpos = Editor->selobj->position;
+			//Editor->cursorpos = Editor->selobj->position;
 		}
 	}
 	if ( ImGui::IsItemActive() )
@@ -75,13 +75,7 @@ void IGObjectTree()
 	ImGui::End();
 }
 
-Vector3 GetYXZRotVecFromMatrix(Matrix *m)
-{
-	float b = atan2(m->_31, m->_33);
-	float j = atan2(m->_12, m->_22);
-	float a = asin(-m->_32);
-	return Vector3(a, b, j);
-}
+
 
 
 GameObject *objtogive = 0;
@@ -122,7 +116,7 @@ void IGEdit()
 		}
 	}
 	ImGui::Separator();
-
+	
 	bool wannadel = 0;
 	if ( ImGui::Button("Delete") )
 		wannadel = 1;
@@ -299,7 +293,6 @@ void IGObjectInfo()
 			ImGui::Text("Vertex start index: %u", Editor->selobj->mesh->vertstart);
 			ImGui::Text("Quad start index:   %u", Editor->selobj->mesh->quadstart);
 			ImGui::Text("Tri start index:    %u", Editor->selobj->mesh->tristart);
-
 			ImGui::Text("FTXO offset: 0x%X", Editor->selobj->mesh->ftxo);
 		}
 	}
@@ -603,10 +596,19 @@ void HandleInput()
 			bestpickdist = HUGE_VAL; //100000000000000000.0f;
 			Matrix mtx; CreateIdentityMatrix(&mtx);
 			IsRayIntersectingObject(&raystart, &raydir, Editor->viewobj, &mtx);
+
+			for ( int i = 0; i < 3; i++ )
+				bestpickintersectionpnt.c[i] = round(bestpickintersectionpnt.c[i]);
+
 			if ( io.KeyAlt )
 			{
 				if ( bestpickobj && Editor->selobj )
+				{
+					float oldy = Editor->selobj->position.y;
 					Editor->selobj->position = bestpickintersectionpnt;
+					Editor->selobj->position.y = oldy;
+					
+				}
 			}
 			else
 				Editor->selobj = bestpickobj;

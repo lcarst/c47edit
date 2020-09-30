@@ -68,6 +68,7 @@ struct GameObject
 	char *name;
 	Matrix matrix;
 	Vector3 position;
+	Vector3 angles;
 	uint type, flags;
 
 	std::vector<GameObject*> subobj;

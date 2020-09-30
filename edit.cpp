@@ -94,7 +94,10 @@ void EditDelete()
 void EditDuplicate()
 {
 	if ( Editor->selobj->root )
-		DuplicateObject(Editor->selobj, Editor->selobj->root);
+	{
+		//DuplicateObject(Editor->selobj, Editor->selobj->root);
+		DuplicateObject(Editor->selobj, Editor->selobj->parent);
+	}
 }
 
 static GameObject *objtogive = 0;

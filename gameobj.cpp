@@ -242,20 +242,25 @@ void LoadSceneSPK(char *fn)
 		o->root = o->parent->root;
 
 		o->position = *(Vector3*)((char*)Map->ppos->maindata + p[4]);
+
 		CreateIdentityMatrix(&o->matrix);
 		float mc[4];
 		int32_t *mtxoff  = (int32_t*)Map->pmtx->maindata + p[3] * 4;
 		for (int i = 0; i < 4; i++)
 			mc[i] = (float)mtxoff[i] / 1073741824.0f; // divide by 2^30
+
 		Vector3 rv[3];
 		rv[2] = Vector3(mc[0], mc[1], 1 - mc[0]*mc[0] - mc[1]*mc[1]);
 		rv[1] = Vector3(mc[2], mc[3], 1 - mc[2]*mc[2] - mc[3]*mc[3]);
 		if (mtxoff[0] & 1) rv[2].z = -rv[2].z;
 		if (mtxoff[2] & 1) rv[1].z = -rv[1].z;
 		Vec3Cross(&rv[0], &rv[1], &rv[2]);
+		
 		for (int i = 0; i < 3; i++)
 			for (int j = 0; j < 3; j++)
 				o->matrix.m[i][j] = rv[i].c[j];
+
+		o->angles = GetYXZRotVecFromMatrix(&o->matrix);
 
 		if (o->flags & 0x0420)
 		{
